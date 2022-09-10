@@ -14,12 +14,13 @@ $app->addErrorMiddleware(true, true, true);
 
 $users = ['mike', 'mishel', 'adel', 'keks', 'kamila'];
 
-$app->get('/users/{id}', function ($request, $response, $args) {
-    $params = ['id' => $args['id'], 'nickname' => 'user-' . $args['id']];
-    // Указанный путь считается относительно базовой директории для шаблонов, заданной на этапе конфигурации
-    // $this доступен внутри анонимной функции благодаря https://php.net/manual/ru/closure.bindto.php
-    // $this в Slim это контейнер зависимостей
-    return $this->get('renderer')->render($response, 'users/show.phtml', $params);
+$app->get('/users', function ($request, $response) use ($users){
+	$term = $request -> getQueryParam('term');
+	$needleUsers = $term === null
+		? $users
+		: array_filter($users, fn ($user) => str_contains($user, $term));
+		
+	return $this->get('renderer')->render($response, 'users/index.phtml', ['term' => $term, 'users' => $needleUsers]);
 });
 
 
