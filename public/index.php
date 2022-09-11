@@ -23,6 +23,14 @@ $app->get('/users', function ($request, $response) use ($users){
 	return $this->get('renderer')->render($response, 'users/index.phtml', ['term' => $term, 'users' => $needleUsers]);
 });
 
+$app->get('/users/new', function ($request, $response) use ($users){
+    $term = $request -> getQueryParam('term');
+    $needleUsers = $term === null
+        ? $users
+        : array_filter($users, fn ($user) => str_contains($user, $term));
+
+    return $this->get('renderer')->render($response, 'users/index.phtml', ['term' => $term, 'users' => $needleUsers]);
+});
 
 /*use Slim\Factory\AppFactory;
 
