@@ -23,13 +23,23 @@ $app->get('/users', function ($request, $response) use ($users){
 	return $this->get('renderer')->render($response, 'users/index.phtml', ['term' => $term, 'users' => $needleUsers]);
 });
 
-$app->get('/users/new', function ($request, $response) use ($users){
-    $term = $request -> getQueryParam('term');
-    $needleUsers = $term === null
-        ? $users
-        : array_filter($users, fn ($user) => str_contains($user, $term));
+$app->get('/users/new', function ($request, $response) {
+    $defaultValues = [
+        'user' => ['name' => '', 'email' => '']
+    ];
+    return $this -> get('renderer') -> render($response, 'users/new.phtml', $defaultValues);
+});
 
-    return $this->get('renderer')->render($response, 'users/index.phtml', ['term' => $term, 'users' => $needleUsers]);
+$app->post('/users', function ($request, $response) {
+    $user = $request -> getParsedBodyParam('user');
+    if ($user['name'] === '' or $user['email'] === '' or $user['email'] === $user['name']) {
+        return $this->get('renderer')->render($response, 'users/new.phtml', ['user' => $user]);
+    }
+
+    $user['id'] = random_int(1, 999);
+    file_put_contents('users.txt', json_encode($user), FILE_APPEND);
+    return $response -> withRedirect('/users', 302);
+
 });
 
 /*use Slim\Factory\AppFactory;
