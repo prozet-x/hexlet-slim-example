@@ -14,6 +14,8 @@ $app->addErrorMiddleware(true, true, true);
 
 $users = ['mike', 'mishel', 'adel', 'keks', 'kamila'];
 
+$router = $app->getRouteCollector()->getRouteParser();
+
 $app->get('/users', function ($request, $response) use ($users){
 	$term = $request -> getQueryParam('term');
 	$needleUsers = $term === null
@@ -21,16 +23,16 @@ $app->get('/users', function ($request, $response) use ($users){
 		: array_filter($users, fn ($user) => str_contains($user, $term));
 		
 	return $this->get('renderer')->render($response, 'users/index.phtml', ['term' => $term, 'users' => $needleUsers]);
-});
+}) -> setName('users');
 
 $app->get('/users/new', function ($request, $response) {
     $defaultValues = [
         'user' => ['name' => '', 'email' => '']
     ];
     return $this -> get('renderer') -> render($response, 'users/new.phtml', $defaultValues);
-});
+}) -> setName('NewUser');
 
-$app->post('/users', function ($request, $response) {
+$app->post('/users', function ($request, $response) use ($router) {
     $user = $request -> getParsedBodyParam('user');
     if ($user['name'] === '' or $user['email'] === '' or $user['email'] === $user['name']) {
         return $this->get('renderer')->render($response, 'users/new.phtml', ['user' => $user]);
@@ -38,7 +40,7 @@ $app->post('/users', function ($request, $response) {
 
     $user['id'] = random_int(1, 999);
     file_put_contents('users.txt', json_encode($user), FILE_APPEND);
-    return $response -> withRedirect('/users', 302);
+    return $response -> withRedirect($router ->urlFor('users'), 302);
 
 });
 
