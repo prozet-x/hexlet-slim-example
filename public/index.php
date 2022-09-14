@@ -32,6 +32,21 @@ $app->get('/users/new', function ($request, $response) {
     return $this -> get('renderer') -> render($response, 'users/new.phtml', $defaultValues);
 }) -> setName('NewUser');
 
+$app -> get("/users/{id}", function ($request, $response, $args) {
+    $id = (int) $args['id'];
+    $usersAsString = explode(PHP_EOL, file_get_contents('users.txt'));
+    $users = array_map(
+        fn ($user) => json_decode($user, true),
+        $usersAsString
+    );
+    $needleUsers = array_filter($users,
+    fn ($user) => $user['id'] === $id);
+    if (count($needleUsers) > 0) {
+        return $this->get('renderer')->render($response, 'users/show.phtml', ['id' => $needleUsers[0]['id'], 'nickname' => $needleUsers[0]['name']]);
+    }
+    return $this->get('renderer') -> render($response -> withStatus(404), 'users/show.phtml', ['id' => 0, 'nickname' => '']);
+}) -> setName('user');
+
 $app->post('/users', function ($request, $response) use ($router) {
     $user = $request -> getParsedBodyParam('user');
     if ($user['name'] === '' or $user['email'] === '' or $user['email'] === $user['name']) {
@@ -39,7 +54,7 @@ $app->post('/users', function ($request, $response) use ($router) {
     }
 
     $user['id'] = random_int(1, 999);
-    file_put_contents('users.txt', json_encode($user), FILE_APPEND);
+    file_put_contents('users.txt', (filesize('users.txt') === 0 ? "" : PHP_EOL) . json_encode($user), FILE_APPEND);
     return $response -> withRedirect($router ->urlFor('users'), 302);
 
 });
