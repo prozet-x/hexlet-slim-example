@@ -21,6 +21,7 @@
       <path value="$PROJECT_DIR$/vendor/slim/slim" />
       <path value="$PROJECT_DIR$/vendor/slim/http" />
       <path value="$PROJECT_DIR$/vendor/slim/psr7" />
+      <path value="$PROJECT_DIR$/vendor/slim/flash" />
     </include_path>
   </component>
   <component name="PhpProjectSharedConfiguration" php_language_level="7.4">

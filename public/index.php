@@ -4,11 +4,17 @@ require __DIR__ . '/../vendor/autoload.php';
 use Slim\Factory\AppFactory;
 use DI\Container;
 
+session_start();
+
 $container = new Container();
 $container->set('renderer', function () {
     // Параметром передается базовая директория, в которой будут храниться шаблоны
     return new \Slim\Views\PhpRenderer(__DIR__ . '/../templates');
 });
+$container -> set('flash', function () {
+    return new \Slim\Flash\Messages();
+});
+
 $app = AppFactory::createFromContainer($container);
 $app->addErrorMiddleware(true, true, true);
 
@@ -17,12 +23,22 @@ $users = ['mike', 'mishel', 'adel', 'keks', 'kamila'];
 $router = $app->getRouteCollector()->getRouteParser();
 
 $app->get('/users', function ($request, $response) use ($users){
-	$term = $request -> getQueryParam('term');
-	$needleUsers = $term === null
+	$params = [];
+
+    $term = $request -> getQueryParam('term');
+    $params['term'] = $term;
+
+    $needleUsers = $term === null
 		? $users
 		: array_filter($users, fn ($user) => str_contains($user, $term));
-		
-	return $this->get('renderer')->render($response, 'users/index.phtml', ['term' => $term, 'users' => $needleUsers]);
+    $params['users'] = $needleUsers;
+
+    $messages = $this -> get('flash') -> getMessages();
+    if (!empty($messages)) {
+        $params['message'] = $messages['success'][0];
+    }
+
+	return $this->get('renderer')->render($response, 'users/index.phtml', $params);
 }) -> setName('users');
 
 $app->get('/users/new', function ($request, $response) {
@@ -55,6 +71,7 @@ $app->post('/users', function ($request, $response) use ($router) {
 
     $user['id'] = random_int(1, 999);
     file_put_contents('users.txt', (filesize('users.txt') === 0 ? "" : PHP_EOL) . json_encode($user), FILE_APPEND);
+    $this -> get('flash') -> addMessage('success', 'User was successfully added');
     return $response -> withRedirect($router ->urlFor('users'), 302);
 
 });

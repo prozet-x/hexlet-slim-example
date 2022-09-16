@@ -1,3 +1,6 @@
+<?php if (isset($message)) :
+echo $message;
+endif; ?>
 <form method="get">
   <input type="search" name="term" value="<?= htmlspecialchars($term) ?>" />
   <input type="submit" value="Search" />
