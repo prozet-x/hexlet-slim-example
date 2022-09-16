@@ -9,6 +9,6 @@ endif; ?>
 
 <?php foreach ($users as $user): ?>
 <div>
-    <?= $user ?>
+    <?= htmlspecialchars($user['name']) ?>
 </div>
 <?php endforeach; ?>

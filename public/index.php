@@ -22,15 +22,16 @@ $users = ['mike', 'mishel', 'adel', 'keks', 'kamila'];
 
 $router = $app->getRouteCollector()->getRouteParser();
 
-$app->get('/users', function ($request, $response) use ($users){
+$app->get('/users', function ($request, $response) {
 	$params = [];
 
     $term = $request -> getQueryParam('term');
     $params['term'] = $term;
 
+    $users = getUsers();
     $needleUsers = $term === null
 		? $users
-		: array_filter($users, fn ($user) => str_contains($user, $term));
+		: array_filter($users, fn ($user) => str_contains($user['name'], $term));
     $params['users'] = $needleUsers;
 
     $messages = $this -> get('flash') -> getMessages();
@@ -50,11 +51,7 @@ $app->get('/users/new', function ($request, $response) {
 
 $app -> get("/users/{id}", function ($request, $response, $args) {
     $id = (int) $args['id'];
-    $usersAsString = explode(PHP_EOL, file_get_contents('users.txt'));
-    $users = array_map(
-        fn ($user) => json_decode($user, true),
-        $usersAsString
-    );
+    $users = getUsers();
     $needleUsers = array_filter($users,
     fn ($user) => $user['id'] === $id);
     if (count($needleUsers) > 0) {
@@ -75,6 +72,14 @@ $app->post('/users', function ($request, $response) use ($router) {
     return $response -> withRedirect($router ->urlFor('users'), 302);
 
 });
+
+function getUsers() {
+    $usersAsString = explode(PHP_EOL, file_get_contents('users.txt'));
+    return array_map(
+        fn ($user) => json_decode($user, true),
+        $usersAsString
+    );
+}
 
 /*use Slim\Factory\AppFactory;
 
