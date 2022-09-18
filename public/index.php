@@ -62,8 +62,18 @@ $app -> get("/users/{id}", function ($request, $response, $args) {
 
 $app->post('/users', function ($request, $response) use ($router) {
     $user = $request -> getParsedBodyParam('user');
-    if ($user['name'] === '' or $user['email'] === '' or $user['email'] === $user['name']) {
-        return $this->get('renderer')->render($response, 'users/new.phtml', ['user' => $user]);
+    $errors = [];
+    if ($user['name'] === '' or $user['email'] === '') {
+        $errors[] = 'All fields are required';
+    }
+    if (strlen($user['name']) < 5) {
+        $errors[] = 'Nickname must be grater that 4 characters';
+    }
+    if (strlen($user['name']) < 5) {
+        $errors[] = 'Email must be grater that 4 characters';
+    }
+    if (count($errors) > 0) {
+        return $this->get('renderer')->render($response, 'users/new.phtml', ['user' => $user, 'errors' => $errors]);
     }
 
     $user['id'] = random_int(1, 999);
