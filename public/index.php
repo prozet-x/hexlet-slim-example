@@ -73,7 +73,7 @@ $app->post('/users', function ($request, $response) use ($router) {
         $errors[] = 'Email must be grater that 4 characters';
     }
     if (count($errors) > 0) {
-        return $this->get('renderer')->render($response, 'users/new.phtml', ['user' => $user, 'errors' => $errors]);
+        return $this->get('renderer')->render($response -> withSatus(422), 'users/new.phtml', ['user' => $user, 'errors' => $errors]);
     }
 
     $user['id'] = random_int(1, 999);
