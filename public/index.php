@@ -4,6 +4,8 @@ require __DIR__ . '/../vendor/autoload.php';
 use Slim\Factory\AppFactory;
 use DI\Container;
 
+const EMPTY_USER = ['name' => '', 'body' => ''];
+
 session_start();
 
 $container = new Container();
@@ -43,25 +45,22 @@ $app->get('/users', function ($request, $response) {
 }) -> setName('users');
 
 $app->get('/users/new', function ($request, $response) {
-    $defaultValues = [
-        'user' => ['name' => '', 'email' => '']
-    ];
+    $defaultValues = ['user' => EMPTY_USER];
     return $this -> get('renderer') -> render($response, 'users/new.phtml', $defaultValues);
 }) -> setName('NewUser');
 
 $app -> get("/users/{id}", function ($request, $response, $args) {
     $id = (int) $args['id'];
     $users = getUsers();
-    $needleUsers = array_filter($users,
-    fn ($user) => $user['id'] === $id);
+    $needleUsers = array_filter($users, fn ($user) => $user['id'] === $id);
     if (count($needleUsers) > 0) {
         return $this->get('renderer')->render($response, 'users/show.phtml', ['id' => $needleUsers[0]['id'], 'nickname' => $needleUsers[0]['name']]);
     }
     return $this->get('renderer') -> render($response -> withStatus(404), 'users/show.phtml', ['id' => 0, 'nickname' => '']);
 }) -> setName('user');
 
-$app->post('/users', function ($request, $response) use ($router) {
-    $user = $request -> getParsedBodyParam('user');
+function validate($user): array
+{
     $errors = [];
     if ($user['name'] === '' or $user['email'] === '') {
         $errors[] = 'All fields are required';
@@ -72,6 +71,12 @@ $app->post('/users', function ($request, $response) use ($router) {
     if (strlen($user['name']) < 5) {
         $errors[] = 'Email must be grater that 4 characters';
     }
+    return $errors;
+}
+
+$app->post('/users', function ($request, $response) use ($router) {
+    $user = $request -> getParsedBodyParam('user');
+    $errors = validate($user);
     if (count($errors) > 0) {
         return $this->get('renderer')->render($response -> withSatus(422), 'users/new.phtml', ['user' => $user, 'errors' => $errors]);
     }
@@ -83,7 +88,17 @@ $app->post('/users', function ($request, $response) use ($router) {
 
 });
 
-function getUsers() {
+$app -> post('/users/{id}', function ($req, $resp, $args) {
+    $updatedUser = $req -> getParsedBodyParam('user', EMPTY_USER);
+    $errors = validate($updatedUser);
+    if (count($errors) > 0) {
+        return $this->get('renderer')->render($resp -> withSatus(422), 'users/edit.phtml', ['user' => $updatedUser, 'errors' => $errors]);
+    }
+
+});
+
+function getUsers(): array
+{
     $usersAsString = explode(PHP_EOL, file_get_contents('users.txt'));
     return array_map(
         fn ($user) => json_decode($user, true),
