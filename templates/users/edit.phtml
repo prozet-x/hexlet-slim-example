@@ -1,0 +1,22 @@
+<h1>New User</h1>
+<hr />
+
+<form action="/users/{id}/edit" method="post">
+    <label>
+        Nickname
+        <input type="text" required name="user[name]" value="<?= htmlspecialchars($user['name'])?>" />
+    </label>
+    <label>
+        Email
+        <input type="text" required name="user[email]" value="<?= htmlspecialchars($user['email'])?>" />
+    </label>
+    <input type="submit" value="Sign up" />
+    <?php if (isset($errors)): ?>
+        <div>
+            <?php
+            foreach ($errors as $error):
+                echo $error . PHP_EOL;
+            endforeach; ?>
+        </div>
+        <?php endif; ?>
+</form>
