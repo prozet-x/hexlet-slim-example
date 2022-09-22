@@ -81,14 +81,31 @@ $app->post('/users', function ($request, $response) use ($router) {
 
 });
 
-$app -> post('/users/{id}', function ($req, $resp, $args) use ($router) {
+$app -> post('/users/{id}/edit', function ($req, $resp, $args) use ($router) {
     $updatedUser = $req -> getParsedBodyParam('user', EMPTY_USER);
+    $updatedUser['id'] = (int) $args['id'];
     $errors = validate($updatedUser);
     if (count($errors) > 0) {
         return $this->get('renderer')->render($resp -> withStatus(422), 'users/edit.phtml', ['user' => $updatedUser, 'errors' => $errors]);
     }
-
+    if (updateUser($updatedUser)) {
+        return $resp -> withRedirect($router -> urlFor('users'), 302);
+    }
 });
+
+function updateUser($newUser)
+{
+    $users = getUsers();
+    $newUsers = array_map(function ($user) use ($newUser) {
+        if ($user['id'] === $newUser['id']) {
+            $user['name'] = $newUser['name'];
+            $user['email'] = $newUser['email'];
+        }
+        return json_encode($user);
+    },
+    $users);
+    return file_put_contents('users.txt', implode(PHP_EOL, $newUsers));
+}
 
 function getUsers()
 {

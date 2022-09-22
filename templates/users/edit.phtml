@@ -1,7 +1,7 @@
 <h1>Edit user</h1>
 <hr />
 
-<form action="/users/<?= htmlspecialchars($user['id'])?>" method="post">
+<form action="/users/<?= htmlspecialchars($user['id'])?>/edit" method="post">
     <input type="hidden" name="_METHOD" value="PATCH">
     <label>
         Nickname
