@@ -51,13 +51,58 @@ $app->get('/users/new', function ($request, $response) {
 
 $app -> get("/users/{id}", function ($request, $response, $args) {
     $id = (int) $args['id'];
-    $users = getUsers();
-    $needleUsers = array_filter($users, fn ($user) => $user['id'] === $id);
-    if (count($needleUsers) > 0) {
-        return $this->get('renderer')->render($response, 'users/show.phtml', ['id' => $needleUsers[0]['id'], 'nickname' => $needleUsers[0]['name']]);
+    $needleUser = getUser($id);
+    if ($needleUser) {
+        return $this->get('renderer')->render($response, 'users/show.phtml', ['id' => $needleUser['id'], 'nickname' => $needleUser['name']]);
     }
     return $this->get('renderer') -> render($response -> withStatus(404), 'users/show.phtml', ['id' => 0, 'nickname' => '']);
 }) -> setName('user');
+
+$app -> get("/users/{id}/edit", function ($request, $response, $args) {
+    $id = (int) $args['id'];
+    $needleUser = getUser($id);
+    if ($needleUser) {
+        return $this->get('renderer')->render($response, 'users/edit.phtml', ['user' => $needleUser]);
+    }
+    return $this->get('renderer') -> render($response -> withStatus(404), 'users/edit.phtml', ['id' => 0, 'nickname' => '']);
+}) -> setName('userEdit');
+
+$app->post('/users', function ($request, $response) use ($router) {
+    $user = $request -> getParsedBodyParam('user');
+    $errors = validate($user);
+    if (count($errors) > 0) {
+        return $this->get('renderer')->render($response -> withStatus(422), 'users/new.phtml', ['user' => $user, 'errors' => $errors]);
+    }
+
+    $user['id'] = random_int(1, 999999);
+    file_put_contents('users.txt', (filesize('users.txt') === 0 ? "" : "|") . json_encode($user), FILE_APPEND);
+    $this -> get('flash') -> addMessage('success', 'User was successfully added');
+    return $response -> withRedirect($router ->urlFor('users'), 302);
+
+});
+
+$app -> post('/users/{id}', function ($req, $resp, $args) use ($router) {
+    $updatedUser = $req -> getParsedBodyParam('user', EMPTY_USER);
+    $errors = validate($updatedUser);
+    if (count($errors) > 0) {
+        return $this->get('renderer')->render($resp -> withStatus(422), 'users/edit.phtml', ['user' => $updatedUser, 'errors' => $errors]);
+    }
+
+});
+
+function getUsers()
+{
+    return array_map(
+        fn ($user) => json_decode(trim($user), true),
+        file('users.txt', FILE_IGNORE_NEW_LINES)
+    );
+}
+
+function getUser($id)
+{
+    $needleUsers = array_values(array_filter(getUsers(), fn ($user) => $user['id'] === $id));
+    return count($needleUsers) > 0 ? $needleUsers[0] : false;
+}
 
 function validate($user): array
 {
@@ -68,42 +113,10 @@ function validate($user): array
     if (strlen($user['name']) < 5) {
         $errors[] = 'Nickname must be grater that 4 characters';
     }
-    if (strlen($user['name']) < 5) {
+    if (strlen($user['email']) < 5) {
         $errors[] = 'Email must be grater that 4 characters';
     }
     return $errors;
-}
-
-$app->post('/users', function ($request, $response) use ($router) {
-    $user = $request -> getParsedBodyParam('user');
-    $errors = validate($user);
-    if (count($errors) > 0) {
-        return $this->get('renderer')->render($response -> withSatus(422), 'users/new.phtml', ['user' => $user, 'errors' => $errors]);
-    }
-
-    $user['id'] = random_int(1, 999);
-    file_put_contents('users.txt', (filesize('users.txt') === 0 ? "" : PHP_EOL) . json_encode($user), FILE_APPEND);
-    $this -> get('flash') -> addMessage('success', 'User was successfully added');
-    return $response -> withRedirect($router ->urlFor('users'), 302);
-
-});
-
-$app -> post('/users/{id}', function ($req, $resp, $args) {
-    $updatedUser = $req -> getParsedBodyParam('user', EMPTY_USER);
-    $errors = validate($updatedUser);
-    if (count($errors) > 0) {
-        return $this->get('renderer')->render($resp -> withSatus(422), 'users/edit.phtml', ['user' => $updatedUser, 'errors' => $errors]);
-    }
-
-});
-
-function getUsers(): array
-{
-    $usersAsString = explode(PHP_EOL, file_get_contents('users.txt'));
-    return array_map(
-        fn ($user) => json_decode($user, true),
-        $usersAsString
-    );
 }
 
 $app->run();

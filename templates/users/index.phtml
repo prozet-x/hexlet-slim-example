@@ -1,14 +1,19 @@
 <?php if (isset($message)) :
 echo $message;
 endif; ?>
+<div>
+    <a href="/users/new">Новый пользователь</a>
+</div>
 <form method="get">
   <input type="search" name="term" value="<?= htmlspecialchars($term) ?>" />
   <input type="submit" value="Search" />
 </form>
 <hr>
-
 <?php foreach ($users as $user): ?>
 <div>
     <?= htmlspecialchars($user['name']) ?>
+    <a href="/users/<?= htmlspecialchars($user['id'])?>">Посмотреть</a>
+    <a href="/users/<?= htmlspecialchars($user['id'])?>/edit">Изменить</a>
+    <a href="">Удалить</a>
 </div>
 <?php endforeach; ?>
