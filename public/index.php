@@ -3,6 +3,7 @@ require __DIR__ . '/../vendor/autoload.php';
 
 use Slim\Factory\AppFactory;
 use DI\Container;
+use Slim\Middleware\MethodOverrideMiddleware;
 
 const EMPTY_USER = ['name' => '', 'body' => ''];
 
@@ -19,6 +20,7 @@ $container -> set('flash', function () {
 
 $app = AppFactory::createFromContainer($container);
 $app->addErrorMiddleware(true, true, true);
+$app->add(MethodOverrideMiddleware::class);
 
 $users = ['mike', 'mishel', 'adel', 'keks', 'kamila'];
 
@@ -67,18 +69,23 @@ $app -> get("/users/{id}/edit", function ($request, $response, $args) {
     return $this->get('renderer') -> render($response -> withStatus(404), 'users/edit.phtml', ['id' => 0, 'nickname' => '']);
 }) -> setName('userEdit');
 
+$app -> delete('/users/{id}/del', function ($req, $resp, $args) use ($router) {
+    $id = $args['id'];
+    deletePost((int) $id);
+    $this -> get('flash') -> addMessage('success', 'Post has been deleted');
+    return $resp -> withRedirect($router -> urlFor('users'), );
+});
+
 $app->post('/users', function ($request, $response) use ($router) {
     $user = $request -> getParsedBodyParam('user');
     $errors = validate($user);
     if (count($errors) > 0) {
         return $this->get('renderer')->render($response -> withStatus(422), 'users/new.phtml', ['user' => $user, 'errors' => $errors]);
     }
-
     $user['id'] = random_int(1, 999999);
     file_put_contents('users.txt', (filesize('users.txt') === 0 ? "" : "|") . json_encode($user), FILE_APPEND);
     $this -> get('flash') -> addMessage('success', 'User was successfully added');
     return $response -> withRedirect($router ->urlFor('users'), 302);
-
 });
 
 $app -> post('/users/{id}/edit', function ($req, $resp, $args) use ($router) {
@@ -92,6 +99,13 @@ $app -> post('/users/{id}/edit', function ($req, $resp, $args) use ($router) {
         return $resp -> withRedirect($router -> urlFor('users'), 302);
     }
 });
+
+function deletePost($id)
+{
+    $users = getUsers();
+    $newUsers = array_filter($users, fn ($user) => $user['id'] !== $id);
+    return file_put_contents('users.txt', implode(PHP_EOL, $newUsers));
+}
 
 function updateUser($newUser)
 {

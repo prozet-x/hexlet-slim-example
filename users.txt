@@ -1,2 +1,1 @@
-{"name":"Andrey","email":"a@mail.ru","id":10915}
-{"name":"vovka","email":"v@mail.ru","id":427243}
+Array
