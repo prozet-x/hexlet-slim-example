@@ -21,3 +21,7 @@
         </div>
         <?php endif; ?>
 </form>
+<form method="post" action="/users/<?= htmlspecialchars($user['id'])?>">
+    <input type="hidden" name="_METHOD" value="DELETE">
+    <input type="submit" value="Delete">
+</form>

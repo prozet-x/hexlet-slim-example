@@ -14,9 +14,5 @@ endif; ?>
     <?= htmlspecialchars($user['name']) ?>
     <a href="/users/<?= htmlspecialchars($user['id'])?>">Посмотреть</a>
     <a href="/users/<?= htmlspecialchars($user['id'])?>/edit">Изменить</a>
-    <form method="post" action="/users/<?= htmlspecialchars($user['id'])?>/del">
-        <input type="hidden" name="_METHOD" value="DELETE">
-        <input type="submit" value="Delete">
-    </form>
 </div>
 <?php endforeach; ?>

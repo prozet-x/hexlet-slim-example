@@ -69,9 +69,9 @@ $app -> get("/users/{id}/edit", function ($request, $response, $args) {
     return $this->get('renderer') -> render($response -> withStatus(404), 'users/edit.phtml', ['id' => 0, 'nickname' => '']);
 }) -> setName('userEdit');
 
-$app -> delete('/users/{id}/del', function ($req, $resp, $args) use ($router) {
+$app -> delete('/users/{id}', function ($req, $resp, $args) use ($router) {
     $id = $args['id'];
-    deletePost((int) $id);
+    deleteUser((int) $id);
     $this -> get('flash') -> addMessage('success', 'Post has been deleted');
     return $resp -> withRedirect($router -> urlFor('users'), );
 });
@@ -83,7 +83,7 @@ $app->post('/users', function ($request, $response) use ($router) {
         return $this->get('renderer')->render($response -> withStatus(422), 'users/new.phtml', ['user' => $user, 'errors' => $errors]);
     }
     $user['id'] = random_int(1, 999999);
-    file_put_contents('users.txt', (filesize('users.txt') === 0 ? "" : "|") . json_encode($user), FILE_APPEND);
+    file_put_contents('users.txt', (filesize('users.txt') === 0 ? "" : PHP_EOL) . json_encode($user), FILE_APPEND);
     $this -> get('flash') -> addMessage('success', 'User was successfully added');
     return $response -> withRedirect($router ->urlFor('users'), 302);
 });
@@ -100,10 +100,11 @@ $app -> post('/users/{id}/edit', function ($req, $resp, $args) use ($router) {
     }
 });
 
-function deletePost($id)
+function deleteUser($id)
 {
     $users = getUsers();
-    $newUsers = array_filter($users, fn ($user) => $user['id'] !== $id);
+    $filteredUsers = array_filter($users, fn ($user) => $user['id'] !== $id);
+    $newUsers = array_map(fn ($user) => json_encode($user), $filteredUsers);
     return file_put_contents('users.txt', implode(PHP_EOL, $newUsers));
 }
 
