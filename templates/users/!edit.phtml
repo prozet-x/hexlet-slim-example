@@ -1,0 +1,27 @@
+<h1>Edit user</h1>
+<hr />
+
+<form action="/users/<?= htmlspecialchars($user['id'])?>/edit" method="post">
+    <input type="hidden" name="_METHOD" value="PATCH">
+    <label>
+        Nickname
+        <input type="text" required name="user[name]" value="<?= htmlspecialchars($user['name'])?>" />
+    </label>
+    <label>
+        Email
+        <input type="text" required name="user[email]" value="<?= htmlspecialchars($user['email'])?>" />
+    </label>
+    <input type="submit" value="Save" />
+    <?php if (isset($errors)): ?>
+        <div>
+            <?php
+            foreach ($errors as $error):
+                echo $error . PHP_EOL;
+            endforeach; ?>
+        </div>
+        <?php endif; ?>
+</form>
+<form method="post" action="/users/<?= htmlspecialchars($user['id'])?>">
+    <input type="hidden" name="_METHOD" value="DELETE">
+    <input type="submit" value="Delete">
+</form>

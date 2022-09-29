@@ -5,6 +5,7 @@ use Slim\Factory\AppFactory;
 use DI\Container;
 use Slim\Middleware\MethodOverrideMiddleware;
 
+/*
 const EMPTY_USER = ['name' => '', 'body' => ''];
 
 session_start();
@@ -135,6 +136,85 @@ function getUser($id)
     $needleUsers = array_values(array_filter(getUsers(), fn ($user) => $user['id'] === $id));
     return count($needleUsers) > 0 ? $needleUsers[0] : false;
 }
+
+function validate($user): array
+{
+    $errors = [];
+    if ($user['name'] === '' or $user['email'] === '') {
+        $errors[] = 'All fields are required';
+    }
+    if (strlen($user['name']) < 5) {
+        $errors[] = 'Nickname must be grater that 4 characters';
+    }
+    if (strlen($user['email']) < 5) {
+        $errors[] = 'Email must be grater that 4 characters';
+    }
+    return $errors;
+}
+
+$app->run();
+*/
+
+const EMPTY_USER = ['name' => '', 'body' => ''];
+
+session_start();
+
+$container = new Container();
+$container->set('renderer', function () {
+    // Параметром передается базовая директория, в которой будут храниться шаблоны
+    return new \Slim\Views\PhpRenderer(__DIR__ . '/../templates');
+});
+$container -> set('flash', function () {
+    return new \Slim\Flash\Messages();
+});
+
+$app = AppFactory::createFromContainer($container);
+$app->addErrorMiddleware(true, true, true);
+$app->add(MethodOverrideMiddleware::class);
+
+$router = $app->getRouteCollector()->getRouteParser();
+
+$app->get('/users', function ($request, $response) {
+    $params = [];
+
+    $term = $request -> getQueryParam('term');
+    $params['term'] = $term;
+
+    //$users = getUsers();
+    $users = json_decode($request -> cookies['users'] ?? '{}');
+    $needleUsers = $term === null
+        ? $users
+        : array_filter($users, fn ($user) => str_contains($user['name'], $term));
+    $params['users'] = $needleUsers;
+
+    $messages = $this -> get('flash') -> getMessages();
+    if (!empty($messages)) {
+        $params['message'] = $messages['success'][0];
+    }
+
+    return $this->get('renderer')->render($response, 'users/index.phtml', $params);
+}) -> setName('users');
+
+$app->get('/users/new', function ($request, $response) {
+    $defaultValues = ['user' => EMPTY_USER];
+    return $this -> get('renderer') -> render($response, 'users/new.phtml', $defaultValues);
+}) -> setName('NewUser');
+
+$app->post('/users', function ($req, $resp) use ($router) {
+    $user = $req -> getParsedBodyParam('user');
+    $errors = validate($user);
+    if (count($errors) > 0) {
+        return $this->get('renderer')->render($resp -> withStatus(422), 'users/new.phtml', ['user' => $user, 'errors' => $errors]);
+    }
+    $user['id'] = random_int(1, 999999);
+    $users = json_decode($req -> getCookieParam('users', json_encode([])));
+    $users[] = $user;
+    $usersEncoded = json_encode($users);
+    setcookie('users', $usersEncoded);
+    $this -> get('flash') -> addMessage('success', 'User was successfully added');
+    //$this -> setCookie('users', $usersEncoded);
+    return $resp -> withHeader('Set-Cookie', "users={$usersEncoded}") -> withRedirect($router ->urlFor('users'), 302);
+});
 
 function validate($user): array
 {
