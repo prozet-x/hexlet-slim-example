@@ -177,11 +177,10 @@ $router = $app->getRouteCollector()->getRouteParser();
 $app->get('/users', function ($request, $response) {
     $params = [];
 
-    $term = $request -> getQueryParam('term');
+    $term = $request -> getQueryParam('term', null);
     $params['term'] = $term;
 
-    //$users = getUsers();
-    $users = json_decode($request -> cookies['users'] ?? '{}');
+    $users = getUsers($request);
     $needleUsers = $term === null
         ? $users
         : array_filter($users, fn ($user) => str_contains($user['name'], $term));
@@ -200,6 +199,24 @@ $app->get('/users/new', function ($request, $response) {
     return $this -> get('renderer') -> render($response, 'users/new.phtml', $defaultValues);
 }) -> setName('NewUser');
 
+$app -> get("/users/{id}", function ($request, $response, $args) {
+    $id = (int) $args['id'];
+    $needleUser = getUser(getUsers($request), $id);
+    if ($needleUser) {
+        return $this->get('renderer')->render($response, 'users/show.phtml', ['id' => $needleUser['id'], 'nickname' => $needleUser['name']]);
+    }
+    return $this->get('renderer') -> render($response -> withStatus(404), 'users/show.phtml', ['id' => 0, 'nickname' => '']);
+}) -> setName('user');
+
+$app -> get("/users/{id}/edit", function ($request, $response, $args) {
+    $id = (int) $args['id'];
+    $needleUser = getUser(getUsers($request), $id);
+    if ($needleUser) {
+        return $this->get('renderer')->render($response, 'users/edit.phtml', ['user' => $needleUser]);
+    }
+    return $this->get('renderer') -> render($response -> withStatus(404), 'users/edit.phtml', ['id' => 0, 'nickname' => '']);
+}) -> setName('userEdit');
+
 $app->post('/users', function ($req, $resp) use ($router) {
     $user = $req -> getParsedBodyParam('user');
     $errors = validate($user);
@@ -210,10 +227,26 @@ $app->post('/users', function ($req, $resp) use ($router) {
     $users = json_decode($req -> getCookieParam('users', json_encode([])));
     $users[] = $user;
     $usersEncoded = json_encode($users);
-    setcookie('users', $usersEncoded);
     $this -> get('flash') -> addMessage('success', 'User was successfully added');
-    //$this -> setCookie('users', $usersEncoded);
     return $resp -> withHeader('Set-Cookie', "users={$usersEncoded}") -> withRedirect($router ->urlFor('users'), 302);
+});
+
+$app -> patch('/users/{id}/edit', function ($req, $resp, $args) use ($router) {
+    $updatedUser = $req -> getParsedBodyParam('user', EMPTY_USER);
+    $updatedUser['id'] = (int) $args['id'];
+    $errors = validate($updatedUser);
+    if (count($errors) > 0) {
+        return $this->get('renderer')->render($resp -> withStatus(422), 'users/edit.phtml', ['user' => $updatedUser, 'errors' => $errors]);
+    }
+    $usersEncoded = json_encode(updateUser(getUsers($req), $updatedUser));
+    return $resp -> withHeader('Set-Cookie', "users={$usersEncoded}") -> withRedirect($router -> urlFor('users'), 302);
+});
+
+$app -> delete('/users/{id}', function ($req, $resp, $args) use ($router) {
+    $id = (int) $args['id'];
+    $newUsers = json_encode(deleteUser(getUsers($req), $id));
+    $this -> get('flash') -> addMessage('success', 'Post has been deleted');
+    return $resp -> withHeader('Set-Cookie', "users={$newUsers}") -> withRedirect($router -> urlFor('users'), );
 });
 
 function validate($user): array
@@ -229,6 +262,39 @@ function validate($user): array
         $errors[] = 'Email must be grater that 4 characters';
     }
     return $errors;
+}
+
+function getUsers($request)
+{
+    return json_decode($request -> getCookieParam('users'), json_encode([]));
+}
+
+function getUser($users, $id)
+{
+    $needleUsers = array_values(array_filter($users, fn ($user) => $user['id'] === $id));
+    return count($needleUsers) > 0 ? $needleUsers[0] : false;
+}
+
+function updateUser($users, $newUser)
+{
+    return array_map(function ($user) use ($newUser) {
+        if ($user['id'] === $newUser['id']) {
+            return [
+                'id' => $newUser['id'],
+                'name' => $newUser['name'],
+                'email' => $newUser['email']
+            ];
+            $user['name'] = $newUser['name'];
+            $user['email'] = $newUser['email'];
+        }
+        return $user;
+    },
+        $users);
+}
+
+function deleteUser($users, $id)
+{
+    return array_values(array_filter($users, fn ($user) => $user['id'] !== $id));
 }
 
 $app->run();
