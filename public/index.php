@@ -228,7 +228,8 @@ $app->post('/users', function ($req, $resp) use ($router) {
     $users[] = $user;
     $usersEncoded = json_encode($users);
     $this -> get('flash') -> addMessage('success', 'User was successfully added');
-    return $resp -> withHeader('Set-Cookie', "users={$usersEncoded}") -> withRedirect($router ->urlFor('users'), 302);
+    setcookie('users', $usersEncoded, 0, '/');
+    return $resp -> withRedirect($router ->urlFor('users'), 302);
 });
 
 $app -> patch('/users/{id}/edit', function ($req, $resp, $args) use ($router) {
@@ -239,14 +240,16 @@ $app -> patch('/users/{id}/edit', function ($req, $resp, $args) use ($router) {
         return $this->get('renderer')->render($resp -> withStatus(422), 'users/edit.phtml', ['user' => $updatedUser, 'errors' => $errors]);
     }
     $usersEncoded = json_encode(updateUser(getUsers($req), $updatedUser));
-    return $resp -> withHeader('Set-Cookie', "users={$usersEncoded}") -> withRedirect($router -> urlFor('users'), 302);
+    setcookie('users', $usersEncoded, 0, '/');
+    return $resp -> withRedirect($router -> urlFor('users'), 302);
 });
 
 $app -> delete('/users/{id}', function ($req, $resp, $args) use ($router) {
     $id = (int) $args['id'];
-    $newUsers = json_encode(deleteUser(getUsers($req), $id));
-    $this -> get('flash') -> addMessage('success', 'Post has been deleted');
-    return $resp -> withHeader('Set-Cookie', "users={$newUsers}") -> withRedirect($router -> urlFor('users'), );
+    $usersEncoded = json_encode(deleteUser(getUsers($req), $id));
+    $this -> get('flash') -> addMessage('success', 'User has been deleted');
+    setcookie('users', $usersEncoded, 0, '/');
+    return $resp -> withRedirect($router -> urlFor('users'), );
 });
 
 function validate($user): array
