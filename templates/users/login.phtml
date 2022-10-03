@@ -1,0 +1,14 @@
+<h1>
+    Login
+</h1>
+<?php if (isset($user)): ?>
+<h1><?= "Hello, " . $user['name']?></h1>
+<form method="post" action="/users/logout">
+    <input type="submit" value="Logout">
+</form>
+<?php else: ?>
+<form method="post" action="/users/login">
+    <input type="text" name="email">
+    <input type="submit" value="Login">
+</form>
+<?php endif; ?>

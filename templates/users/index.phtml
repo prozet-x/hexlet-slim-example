@@ -1,6 +1,13 @@
 <?php if (isset($message)) :
 echo $message;
 endif; ?>
+
+<?php if (isset($needLogout)): ?>
+<form method="post" action="/users/logout">
+    <input type="submit" value="Logout">
+</form>
+<?php endif; ?>
+
 <div>
     <a href="/users/new">Новый пользователь</a>
 </div>

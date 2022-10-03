@@ -191,6 +191,10 @@ $app->get('/users', function ($request, $response) {
         $params['message'] = $messages['success'][0];
     }
 
+    if (isset($_SESSION['user'])) {
+        $params['needLogout'] = true;
+    }
+
     return $this->get('renderer')->render($response, 'users/index.phtml', $params);
 }) -> setName('users');
 
@@ -198,6 +202,13 @@ $app->get('/users/new', function ($request, $response) {
     $defaultValues = ['user' => EMPTY_USER];
     return $this -> get('renderer') -> render($response, 'users/new.phtml', $defaultValues);
 }) -> setName('NewUser');
+
+$app -> get('/users/login', function($req, $resp) {
+    if (isset($_SESSION['user'])) {
+        return $this -> get('renderer') -> render($resp, 'users/login.phtml', ['user' => $_SESSION['user']]);
+    }
+    return $this -> get('renderer') -> render($resp, 'users/login.phtml');
+});
 
 $app -> get("/users/{id}", function ($request, $response, $args) {
     $id = (int) $args['id'];
@@ -230,6 +241,24 @@ $app->post('/users', function ($req, $resp) use ($router) {
     $this -> get('flash') -> addMessage('success', 'User was successfully added');
     setcookie('users', $usersEncoded, 0, '/');
     return $resp -> withRedirect($router ->urlFor('users'), 302);
+});
+
+$app -> post('/users/login', function ($req, $resp) {
+    $email = $req -> getParsedBodyParam('email');
+    $user = getUserByEmail(getUsers($req), $email);
+    if (!$user) {
+        return $resp -> withRedirect('/users/login');
+    }
+    $_SESSION['user'] = $user;
+    return $resp -> withRedirect('/users');
+});
+
+$app -> post('/users/logout', function ($req, $resp) {
+    if (isset($_SESSION['user'])) {
+        $_SESSION = [];
+        session_destroy();
+    }
+    return $resp -> withRedirect('/users');
 });
 
 $app -> patch('/users/{id}/edit', function ($req, $resp, $args) use ($router) {
@@ -275,6 +304,12 @@ function getUsers($request)
 function getUser($users, $id)
 {
     $needleUsers = array_values(array_filter($users, fn ($user) => $user['id'] === $id));
+    return count($needleUsers) > 0 ? $needleUsers[0] : false;
+}
+
+function getUserByEmail($users, $email)
+{
+    $needleUsers = array_values(array_filter($users, fn ($user) => $user['email'] === $email));
     return count($needleUsers) > 0 ? $needleUsers[0] : false;
 }
 
